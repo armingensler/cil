@@ -463,6 +463,10 @@ and childrenStatement vis s =
       let e' = visitCabsExpression vis e in
       let b2' = visitCabsBlock vis b2 in
       if b1' != b1 || e' != e || b2' != b2 then TRY_EXCEPT(b1', e', b2', l) else s
+  | GOBLINT_PP_IFELSE (v, bt, bf, l) -> 
+      let bt' = visitCabsBlock vis bt in
+      let bf' = visitCabsBlock vis bf in
+      if bt' != bt || bf' != bf then GOBLINT_PP_IFELSE (v, bt', bf', l) else s
       
           
 and visitCabsExpression vis (e: expression) : expression = 

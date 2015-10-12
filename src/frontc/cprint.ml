@@ -713,6 +713,14 @@ and print_statement stat =
       printl ["__except";"("]; print_expression e; print ")";
       print_block h
       
+  | GOBLINT_PP_IFELSE (vname, bt, bf, loc) ->
+      setLoc(loc);
+      printl ["GOBLINT_PP_IF";"(";vname;")"];
+      print_block bt;
+      print "GOBLINT_PP_ELSE";
+      print_block bf;
+      print "GOBLINT_PP_ENDIF "
+      
 and print_block blk = 
   new_line();
   print "{";

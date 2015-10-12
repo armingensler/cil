@@ -6646,6 +6646,13 @@ and doStatement (s : A.statement) : chunk =
         in
         s2c (mkStmt (TryExcept (c2block b', (il', e'), c2block h', loc')))
 
+    | A.GOBLINT_PP_IFELSE(v, bt, bf, loc) ->
+        let e = A.VARIABLE v in
+        let st = A.BLOCK (bt, loc) in
+        let sf = A.BLOCK (bf, loc) in
+        doStatement (A.IF (e, st, sf, loc))
+    
+
   with e when continueOnError -> begin
     (ignore (E.log "Error in doStatement (%s)\n" (Printexc.to_string e)));
     E.hadErrors := true;

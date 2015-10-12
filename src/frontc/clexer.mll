@@ -218,6 +218,11 @@ let init_lexicon _ =
                          THREAD loc
                        else 
                          IDENT ("__thread", loc));
+      
+      ("GOBLINT_PP_VAR_IF", fun loc -> GOBLINT_PP_VAR_IF loc);
+      ("GOBLINT_PP_VAR_IFNOT", fun loc -> GOBLINT_PP_VAR_IFNOT loc);
+      ("GOBLINT_PP_VAR_ELSE", fun loc -> GOBLINT_PP_VAR_ELSE loc);
+      ("GOBLINT_PP_VAR_ENDIF", fun loc -> GOBLINT_PP_VAR_ENDIF loc);
     ]
 
 (* Mark an identifier as a type name. The old mapping is preserved and will 

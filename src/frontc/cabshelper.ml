@@ -84,6 +84,7 @@ begin
   | ASM(_,_,_,loc) -> loc
   | TRY_EXCEPT(_, _, _, loc) -> loc
   | TRY_FINALLY(_, _, loc) -> loc
+  | GOBLINT_PP_IFELSE(_, _, _, loc) -> loc
 end
 
 

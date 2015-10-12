@@ -227,6 +227,7 @@ and statement =
    (** MS SEH *)
  | TRY_EXCEPT of block * expression * block * cabsloc
  | TRY_FINALLY of block * block * cabsloc
+ | GOBLINT_PP_IFELSE of string * block * block * cabsloc
  
 and for_clause = 
    FC_EXP of expression

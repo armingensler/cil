@@ -249,15 +249,88 @@ begin
                 !counter (List.length file))
 end
 
+let get_goblint_pp_vars cabs =
+  
+  let vars: string list ref = ref [] in
+  
+  let is_prefix s p = String.length s >= String.length p && String.sub s 0 (String.length p) = p in
+  
+  let visitor = object
+    inherit Cabsvisit.nopCabsVisitor as super
+    
+    method vstmt (s: Cabs.statement) = 
+      begin match s with
+      | GOBLINT_PP_IFELSE (v, _, _, _) when is_prefix v "GOBLINT_PP_VAR__" && not (List.exists (fun x -> x = v) (!vars)) -> 
+        vars := v :: !vars;
+      | _ -> ()
+      end;
+     super#vstmt s 
+      
+  end in
+  
+  let _ = Cabsvisit.visitCabsFile visitor cabs in
+  List.rev (!vars)
+  
+let add_goblint_pp_vars_init cabs ppvars =
+  
+  let visitor = object
+    inherit Cabsvisit.nopCabsVisitor as super
+    
+    method vdef (d: Cabs.definition) =
+      let open Cabs in 
+      let d' = 
+        begin match d with
+        | FUNDEF((_, ("main", _, _, _)) as n, block, l1, l2) -> 
+          let loc = { lineno = 1; filename = "GOBLINT_PP_CODE"; byteno = 0; ident = 0 } in
+          let mk_stmt v = COMPUTATION (BINARY (ASSIGN, VARIABLE v, CALL (VARIABLE "GOBLINT_PP_FUN__INIT_FLAG", [])), loc) in
+          let stmts = List.map mk_stmt ppvars in
+          let block' = { blabels = block.blabels; battrs = block.battrs; bstmts = stmts @ block.bstmts } in
+          FUNDEF(n, block', l1, l2)
+        | _ -> d
+        end
+      in
+      ChangeTo [d']
+      
+  end in
+  
+  Cabsvisit.visitCabsFile visitor cabs
 
+let add_goblint_pp_code cabss =
+  
+  let open Cabs in
+  
+  let ppvars = get_goblint_pp_vars cabss in
+  List.iter print_endline ppvars;
+  let loc = { lineno = 1; filename = "GOBLINT_PP_CODE"; byteno = 0; ident = 0 } in
+  
+  (* Definitions for pp variable initializing function. *)
+  (* int GOBLINT_PP_FUN__INIT_FLAG () { int i; return !!i; } *)
+  let pp_init_fun = 
+    let stmt1 = DEFINITION (DECDEF (([SpecType Tint], [(("i", JUSTBASE, [], loc), NO_INIT)]), loc)) in
+    let stmt2 = RETURN (UNARY (NOT, UNARY (NOT, VARIABLE "i")), loc) in
+    let block = { blabels = []; battrs = []; bstmts = [stmt1; stmt2] } in
+    let name = ("GOBLINT_PP_FUN__INIT_FLAG", PROTO (JUSTBASE, [] , false), [], loc) in
+    FUNDEF (([SpecType Tint], name), block, loc, loc)
+  in
+  
+  (* Definitions for pp variables. *)
+  (* int GOBLINT_PP_VAR__XXX ; *)
+  let pp_var_def v = DECDEF (([SpecType Tint], [((v, JUSTBASE, [], loc), NO_INIT)]), loc) in
+  let pp_var_defs = List.map pp_var_def ppvars in
+  
+  let (cabs_s, cabs_ds) = cabss in
+  let with_header = (cabs_s, pp_init_fun :: pp_var_defs @ cabs_ds) in
+  
+  add_goblint_pp_vars_init with_header ppvars
 
 let parse_helper fname =
   (trace "sm" (dprintf "parsing %s to Cabs\n" fname));
   let cabs = parse_to_cabs fname in
+  let cabs' = add_goblint_pp_code cabs in
   (* Now (return a function that will) convert to CIL *)
   fun _ ->
     (trace "sm" (dprintf "converting %s from Cabs to CIL\n" fname));
-    let cil = Stats.time "convert to CIL" Cabs2cil.convFile cabs in
+    let cil = Stats.time "convert to CIL" Cabs2cil.convFile cabs' in
     if !doPrintProtos then (printPrototypes cabs);
     cabs, cil
 
