@@ -260,7 +260,7 @@ let get_goblint_pp_vars cabs =
     
     method vstmt (s: Cabs.statement) = 
       begin match s with
-      | GOBLINT_PP_IFELSE (v, _, _, _) when is_prefix v "GOBLINT_PP_VAR__" && not (List.exists (fun x -> x = v) (!vars)) -> 
+      | Cabs.GOBLINT_PP_IFELSE (v, _, _, _) when is_prefix v "GOBLINT_PP_VAR__" && not (List.exists (fun x -> x = v) (!vars)) -> 
         vars := v :: !vars;
       | _ -> ()
       end;
@@ -281,15 +281,14 @@ let add_goblint_pp_vars_init cabs ppvars =
       let d' = 
         begin match d with
         | FUNDEF((_, ("main", _, _, _)) as n, block, l1, l2) -> 
-          let loc = { lineno = 1; filename = "GOBLINT_PP_CODE"; byteno = 0; ident = 0 } in
-          let mk_stmt v = COMPUTATION (BINARY (ASSIGN, VARIABLE v, CALL (VARIABLE "GOBLINT_PP_FUN__INIT_FLAG", [])), loc) in
+          let mk_stmt v = COMPUTATION (BINARY (ASSIGN, VARIABLE v, CALL (VARIABLE "GOBLINT_PP_FUN__INIT_FLAG", [])), l1) in
           let stmts = List.map mk_stmt ppvars in
           let block' = { blabels = block.blabels; battrs = block.battrs; bstmts = stmts @ block.bstmts } in
           FUNDEF(n, block', l1, l2)
         | _ -> d
         end
       in
-      ChangeTo [d']
+      Cabsvisit.ChangeTo [d']
       
   end in
   
@@ -299,9 +298,11 @@ let add_goblint_pp_code cabss =
   
   let open Cabs in
   
+  let (cabs_name, cabs_ds) = cabss in
+  
   let ppvars = get_goblint_pp_vars cabss in
   List.iter print_endline ppvars;
-  let loc = { lineno = 1; filename = "GOBLINT_PP_CODE"; byteno = 0; ident = 0 } in
+  let loc = { lineno = 1; filename = cabs_name; byteno = 0; ident = 0 } in
   
   (* Definitions for pp variable initializing function. *)
   (* int GOBLINT_PP_FUN__INIT_FLAG () { int i; return !!i; } *)
@@ -318,8 +319,7 @@ let add_goblint_pp_code cabss =
   let pp_var_def v = DECDEF (([SpecType Tint], [((v, JUSTBASE, [], loc), NO_INIT)]), loc) in
   let pp_var_defs = List.map pp_var_def ppvars in
   
-  let (cabs_s, cabs_ds) = cabss in
-  let with_header = (cabs_s, pp_init_fun :: pp_var_defs @ cabs_ds) in
+  let with_header = (cabs_name, pp_init_fun :: pp_var_defs @ cabs_ds) in
   
   add_goblint_pp_vars_init with_header ppvars
 

@@ -857,7 +857,23 @@ local_label_names:
 |  IDENT COMMA local_label_names         { fst $1 :: $3 }
 ;
 
-
+goblint_pp_block:
+    goblint_pp_block_begin block_element_list location
+                                         {!Lexerhack.pop_context();
+                                          { blabels = [];
+                                            battrs = [];
+                                            bstmts = $2 },
+					    $1, $3
+                                         } 
+|   error location                       { { blabels = [];
+                                             battrs  = [];
+                                             bstmts  = [] },
+					     $2, $2
+                                         }
+;
+goblint_pp_block_begin:
+    location      		         {!Lexerhack.push_context (); $1}
+;
 
 statement:
     SEMICOLON		{NOP ((*handleLoc*) $1) }
@@ -913,28 +929,28 @@ statement:
                           if not !Cprint.msvcMode then 
                             parse_error "try/finally in GCC code";
                           TRY_FINALLY (b, h, (*handleLoc*) $1) }
-|   GOBLINT_PP_VAR_IF LPAREN IDENT RPAREN block GOBLINT_PP_VAR_ENDIF
+|   GOBLINT_PP_VAR_IF LPAREN IDENT RPAREN goblint_pp_block GOBLINT_PP_VAR_ENDIF
                         { 
                             let bt, _, _ = $5 in
                             let bf = { blabels = []; battrs  = []; bstmts  = [] } in
                             let v, _ = $3 in
                             GOBLINT_PP_IFELSE (v, bt, bf, $1)
                         }
-|   GOBLINT_PP_VAR_IFNOT LPAREN IDENT RPAREN block GOBLINT_PP_VAR_ENDIF
+|   GOBLINT_PP_VAR_IFNOT LPAREN IDENT RPAREN goblint_pp_block GOBLINT_PP_VAR_ENDIF
                         { 
                             let bt = { blabels = []; battrs  = []; bstmts  = [] } in
                             let bf, _, _ = $5 in
                             let v, _ = $3 in
                             GOBLINT_PP_IFELSE (v, bt, bf, $1)
                         }
-|   GOBLINT_PP_VAR_IF LPAREN IDENT RPAREN block GOBLINT_PP_VAR_ELSE block GOBLINT_PP_VAR_ENDIF
+|   GOBLINT_PP_VAR_IF LPAREN IDENT RPAREN goblint_pp_block GOBLINT_PP_VAR_ELSE goblint_pp_block GOBLINT_PP_VAR_ENDIF
                         { 
                             let bt, _, _ = $5 in
                             let bf, _, _ = $7 in
                             let v, _ = $3 in
                             GOBLINT_PP_IFELSE (v, bt, bf, $1)
                         }
-|   GOBLINT_PP_VAR_IFNOT LPAREN IDENT RPAREN block GOBLINT_PP_VAR_ELSE block GOBLINT_PP_VAR_ENDIF
+|   GOBLINT_PP_VAR_IFNOT LPAREN IDENT RPAREN goblint_pp_block GOBLINT_PP_VAR_ELSE goblint_pp_block GOBLINT_PP_VAR_ENDIF
                         { 
                             let bf, _, _ = $5 in
                             let bt, _, _ = $7 in
